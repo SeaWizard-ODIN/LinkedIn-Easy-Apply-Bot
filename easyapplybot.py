@@ -1,4 +1,10 @@
-from __future__ import annotations
+# === Required Packages ===
+# Install via: pip install -r requirements.txt
+# - selenium
+# - pandas
+# - pyyaml
+# - beautifulsoup4
+# - webdriver-manager
 
 import json
 import csv
@@ -12,7 +18,9 @@ import getpass
 from pathlib import Path
 
 import pandas as pd
-import pyautogui
+
+# import pyautogui
+
 import yaml
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -23,24 +31,87 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.chrome.service import Service as ChromeService
-import webdriver_manager.chrome as ChromeDriverManager
-ChromeDriverManager = ChromeDriverManager.ChromeDriverManager
+from webdriver_manager.chrome import ChromeDriverManager
 
+import urllib.parse
+
+# from selenium.webdriver.chrome.service import Service as ChromeService
+
+# import webdriver_manager.chrome as ChromeDriverManager
+
+# ChromeDriverManager = ChromeDriverManager.ChromeDriverManager
 
 log = logging.getLogger(__name__)
 
+# def setupLogger() -> None:
+
+# dt: str = datetime.strftime(datetime.now(), "%m*%d*%y %H*%M*%S ")
+
+#
+
+# if not os.path.isdir('./logs'):
+
+# os.mkdir('./logs')
+
+#
+
+# # TODO need to check if there is a log dir available or not
+
+# logging.basicConfig(filename=('./logs/' + str(dt) + 'applyJobs.log'), filemode='w',
+
+# format='%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='./logs/%d-%b-%y %H:%M:%S')
+
+# log.setLevel(logging.DEBUG)
+
+# c_handler = logging.StreamHandler()
+
+# c_handler.setLevel(logging.DEBUG)
+
+# c_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%H:%M:%S')
+
+# c_handler.setFormatter(c_format)
+
+# log.addHandler(c_handler)
+
+def get_appliedIDs(self, filename):
+    if not os.path.exists(filename):
+        log.info(f"Output file {filename} not found. Creating new file.")
+        with open(filename, 'w') as f:
+            f.write("timestamp,jobID,job,company,attempted,result\n")
+        return []
+
+    try:
+        df = pd.read_csv(filename,
+                         header=None,
+                         names=['timestamp', 'jobID', 'job', 'company', 'attempted', 'result'],
+                         lineterminator='\n',
+                         encoding='utf-8')
+
+        df['timestamp'] = pd.to_datetime(df['timestamp'], format="%Y-%m-%d %H:%M:%S")
+        df = df[df['timestamp'] > (datetime.now() - timedelta(days=2))]
+        jobIDs = list(df.jobID)
+        log.info(f"{len(jobIDs)} jobIDs found")
+        return jobIDs
+    except Exception as e:
+        log.info(f"{e}   jobIDs could not be loaded from CSV {filename}")
+        return []
 
 def setupLogger() -> None:
-    dt: str = datetime.strftime(datetime.now(), "%m_%d_%y %H_%M_%S ")
+    dt: str = datetime.strftime(datetime.now(), "%m-%d-%y_%H-%M-%S")
+#    dt: str = datetime.strftime(datetime.now(), "%m*%d*%y %H*%M*%S ")
 
     if not os.path.isdir('./logs'):
         os.mkdir('./logs')
 
-    # TODO need to check if there is a log dir available or not
-    logging.basicConfig(filename=('./logs/' + str(dt) + 'applyJobs.log'), filemode='w',
-                        format='%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='./logs/%d-%b-%y %H:%M:%S')
+    logging.basicConfig(
+        filename=('./logs/' + str(dt) + 'applyJobs.log'),
+        filemode='w',
+        format='%(asctime)s::%(name)s::%(levelname)s::%(message)s',
+        datefmt='./logs/%d-%b-%y %H:%M:%S'
+    )
     log.setLevel(logging.DEBUG)
     c_handler = logging.StreamHandler()
     c_handler.setLevel(logging.DEBUG)
@@ -48,11 +119,60 @@ def setupLogger() -> None:
     c_handler.setFormatter(c_format)
     log.addHandler(c_handler)
 
+# def setupLogger() -> None:
+
+# dt: str = datetime.strftime(datetime.now(), "%m*%d*%y %H*%M*%S ")
+
+#
+
+# if not os.path.isdir('./logs'):
+
+# os.mkdir('./logs')
+
+#
+
+# # TODO need to check if there is a log dir available or not
+
+# logging.basicConfig(filename=('./logs/' + str(dt) + 'applyJobs.log'), filemode='w',
+
+# format='%(asctime)s::%(name)s::%(levelname)s::%(message)s', datefmt='./logs/%d-%b-%y %H:%M:%S')
+
+# log.setLevel(logging.DEBUG)
+
+# c_handler = logging.StreamHandler()
+
+# c_handler.setLevel(logging.DEBUG)
+
+# c_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%H:%M:%S')
+
+# c_handler.setFormatter(c_format)
+
+# log.addHandler(c_handler)
+
+
+def setupLogger() -> None:
+    dt: str = datetime.strftime(datetime.now(), "%m-%d-%y_%H-%M-%S")
+#    dt: str = datetime.strftime(datetime.now(), "%m*%d*%y %H*%M*%S ")
+
+    if not os.path.isdir('./logs'):
+        os.mkdir('./logs')
+
+    logging.basicConfig(
+        filename=('./logs/' + str(dt) + 'applyJobs.log'),
+        filemode='w',
+        format='%(asctime)s::%(name)s::%(levelname)s::%(message)s',
+        datefmt='./logs/%d-%b-%y %H:%M:%S'
+    )
+    log.setLevel(logging.DEBUG)
+    c_handler = logging.StreamHandler()
+    c_handler.setLevel(logging.DEBUG)
+    c_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', '%H:%M:%S')
+    c_handler.setFormatter(c_format)
+    log.addHandler(c_handler)
 
 class EasyApplyBot:
-    setupLogger()
-    # MAX_SEARCH_TIME is 10 hours by default, feel free to modify it
-    MAX_SEARCH_TIME = 60 * 60
+# setupLogger() # MAX_SEARCH_TIME is 10 hours by default, feel free to modify it
+    MAX_SEARCH_TIME = 60 * 60 # 1 hour by default
 
     def __init__(self,
                  username,
@@ -67,7 +187,7 @@ class EasyApplyBot:
                  blackListTitles=[],
                  experience_level=[]
                  ) -> None:
-
+        setupLogger() # Moved to correct place to call it
         log.info("Welcome to Easy Apply Bot")
         dirpath: str = os.getcwd()
         log.info("current directory is : " + dirpath)
@@ -85,7 +205,7 @@ class EasyApplyBot:
             log.info("Applying for experience level roles: " + ", ".join(applied_levels))
         else:
             log.info("Applying for all experience levels")
-        
+
 
         self.uploads = uploads
         self.salary = salary
@@ -180,7 +300,9 @@ class EasyApplyBot:
             user_field = self.browser.find_element("id","username")
             pw_field = self.browser.find_element("id","password")
             login_button = self.browser.find_element("xpath",
-                        '//*[@id="organic-div"]/form/div[3]/button')
+#                        '//*[@id="organic-div"]/form/div[3]/button')
+                         '//button[@type="submit"]')
+
             user_field.send_keys(username)
             user_field.send_keys(Keys.TAB)
             time.sleep(2)
@@ -269,7 +391,7 @@ class EasyApplyBot:
                 # )
 
                     jobIDs = {} #{Job id: processed_status}
-                
+
                     # children selector is the container of the job cards on the left
                     for link in links:
                             if 'Applied' not in link.text: #checking if applied already
@@ -284,12 +406,12 @@ class EasyApplyBot:
                         self.apply_loop(jobIDs)
                     self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                       location,
-                                                                      jobs_per_page, 
+                                                                      jobs_per_page,
                                                                       experience_level=self.experience_level)
                 else:
                     self.browser, jobs_per_page = self.next_jobs_page(position,
                                                                       location,
-                                                                      jobs_per_page, 
+                                                                      jobs_per_page,
                                                                       experience_level=self.experience_level)
 
 
@@ -303,7 +425,7 @@ class EasyApplyBot:
                     log.info(f"Applied to {jobID}")
                 else:
                     log.info(f"Failed to apply to {jobID}")
-                jobIDs[jobID] == applied
+                jobIDs[jobID] = applied
 
     def apply_to_job(self, jobID):
         # #self.avoid_lock() # annoying
@@ -320,7 +442,7 @@ class EasyApplyBot:
 
         # word filter to skip positions not wanted
         if button is not False:
-            if any(word in self.browser.title for word in blackListTitles):
+            if any(word in self.browser.title for word in self.blackListTitles):
                 log.info('skipping this application, a blacklisted keyword was found in the job position')
                 string_easy = "* Contains blacklisted keyword"
                 result = False
@@ -389,8 +511,8 @@ class EasyApplyBot:
                     self.wait.until(EC.element_to_be_clickable(EasyApplyButton))
                 else:
                     log.debug("Easy Apply button not found")
-            
-        except Exception as e: 
+
+        except Exception as e:
             print("Exception:",e)
             log.debug("Easy Apply button not found")
 
@@ -445,88 +567,231 @@ class EasyApplyBot:
             while loop < 2:
                 time.sleep(1)
                 # Upload resume
-                if is_present(upload_resume_locator):
+                # if is_present(upload_resume_locator):
                     #upload_locator = self.browser.find_element(By.NAME, "file")
+                    # try:
+                    #     resume_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-resume')]")
+                    #     resume_path = os.path.abspath(self.uploads["Resume"])
+                    #     if os.path.exists(resume_path):
+                    #         resume_locator.send_keys(resume_path)
+                    #     else:
+                    #         log.error(f"Resume file not found at: {resume_path}")
+                    #     return False
+#                        resume = self.uploads["Resume"]
+#                        resume_locator.send_keys(resume)
+                    # except Exception as e:
+                    #     log.error(e)
+                    #     log.error("Resume upload failed")
+                    #     log.debug("Resume: " + resume)
+                    #     log.debug("Resume Locator: " + str(resume_locator))
+                if is_present(upload_resume_locator):
                     try:
                         resume_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-resume')]")
-                        resume = self.uploads["Resume"]
-                        resume_locator.send_keys(resume)
+                        resume_path = os.path.abspath(self.uploads["Resume"])
+                        if os.path.exists(resume_path):
+                            resume_locator.send_keys(resume_path)
+                        else:
+                            log.error(f"Resume file not found at: {resume_path}")
+                            return False  # Only return False if the file doesn't exist
                     except Exception as e:
                         log.error(e)
                         log.error("Resume upload failed")
-                        log.debug("Resume: " + resume)
                         log.debug("Resume Locator: " + str(resume_locator))
+
                 # Upload cover letter if possible
                 if is_present(upload_cv_locator):
-                    cv = self.uploads["Cover Letter"]
-                    cv_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-cover-letter')]")
-                    cv_locator.send_keys(cv)
+                    try:
+                        cv_path = os.path.abspath(self.uploads.get("Cover Letter", ""))
+                        if os.path.exists(cv_path):
+                            cv_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-cover-letter')]")
+                            cv_locator.send_keys(cv_path)
+                            log.info("Cover Letter uploaded successfully.")
+                        else:
+                            log.warning(f"Cover Letter file not found at: {cv_path}")
+                    except Exception as e:
+                        log.error(f"Error uploading Cover Letter: {e}")
 
-                    #time.sleep(random.uniform(4.5, 6.5))
-                elif len(self.get_elements("follow")) > 0:
-                    elements = self.get_elements("follow")
-                    for element in elements:
+                # Handle 'Follow Company' Checkbox
+                follow_elements = self.get_elements("follow")
+                for element in follow_elements:
+                    try:
                         button = self.wait.until(EC.element_to_be_clickable(element))
                         button.click()
+                        log.info("Clicked 'Follow Company' checkbox.")
+                    except Exception as e:
+                        log.warning(f"Error clicking 'Follow' checkbox: {e}")
 
-                if len(self.get_elements("submit")) > 0:
-                    elements = self.get_elements("submit")
-                    for element in elements:
-                        button = self.wait.until(EC.element_to_be_clickable(element))
-                        button.click()
-                        log.info("Application Submitted")
-                        submitted = True
-                        break
+                # Handle Submit
+                submit_elements = self.get_elements("submit")
+                if submit_elements:
+                    for element in submit_elements:
+                        try:
+                            button = self.wait.until(EC.element_to_be_clickable(element))
+                            button.click()
+                            log.info("Application Submitted.")
+                            submitted = True
+                            break
+                        except Exception as e:
+                            log.error(f"Error clicking 'Submit' button: {e}")
 
-                elif len(self.get_elements("error")) > 0:
-                    elements = self.get_elements("error")
-                    if "application was sent" in self.browser.page_source:
-                        log.info("Application Submitted")
-                        submitted = True
-                        break
-                    elif len(elements) > 0:
-                        while len(elements) > 0:
-                            log.info("Please answer the questions, waiting 5 seconds...")
-                            time.sleep(5)
-                            elements = self.get_elements("error")
+                # Handle Errors / Questions
+                elif self.get_elements("error"):
+                    max_retries = 3
+                    retry_count = 0
+                    while retry_count < max_retries:
+                        log.info(f"Answering application questions... Attempt {retry_count + 1}/{max_retries}")
+                        self.process_questions()
+                        time.sleep(1)
 
-                            for element in elements:
-                                self.process_questions()
+                        if "application was sent" in self.browser.page_source:
+                            log.info("Application successfully submitted after answering questions.")
+                            submitted = True
+                            break
 
-                            if "application was sent" in self.browser.page_source:
-                                log.info("Application Submitted")
-                                submitted = True
-                                break
-                            elif is_present(self.locator["easy_apply_button"]):
-                                log.info("Skipping application")
-                                submitted = False
-                                break
-                        continue
-                        #add explicit wait
-                    
-                    else:
-                        log.info("Application not submitted")
-                        time.sleep(2)
-                        break
-                    # self.process_questions()
+                        if is_present(self.locator["easy_apply_button"]):
+                            log.info("Easy Apply button still present. Skipping application.")
+                            submitted = False
+                            break
 
-                elif len(self.get_elements("next")) > 0:
-                    elements = self.get_elements("next")
-                    for element in elements:
-                        button = self.wait.until(EC.element_to_be_clickable(element))
-                        button.click()
+                        retry_count += 1
 
-                elif len(self.get_elements("review")) > 0:
-                    elements = self.get_elements("review")
-                    for element in elements:
-                        button = self.wait.until(EC.element_to_be_clickable(element))
-                        button.click()
+                    if retry_count >= max_retries:
+                        log.info("Max retries reached. Skipping application.")
 
-                elif len(self.get_elements("follow")) > 0:
-                    elements = self.get_elements("follow")
-                    for element in elements:
-                        button = self.wait.until(EC.element_to_be_clickable(element))
-                        button.click()
+                # Handle Next Button (Multi-Step Forms)
+                elif self.get_elements("next"):
+                    next_elements = self.get_elements("next")
+                    for element in next_elements:
+                        try:
+                            button = self.wait.until(EC.element_to_be_clickable(element))
+                            button.click()
+                            log.info("Clicked 'Next' button to continue application.")
+                        except Exception as e:
+                            log.warning(f"Error clicking 'Next' button: {e}")
+
+                # Handle Review Button
+                elif self.get_elements("review"):
+                    review_elements = self.get_elements("review")
+                    for element in review_elements:
+                        try:
+                            button = self.wait.until(EC.element_to_be_clickable(element))
+                            button.click()
+                            log.info("Clicked 'Review' button.")
+                        except Exception as e:
+                            log.warning(f"Error clicking 'Review' button: {e}")
+
+                else:
+                    log.info("No further actions found. Application incomplete or requires manual review.")
+                    time.sleep(2)
+
+        #         if is_present(upload_cv_locator):
+        #             cv = self.uploads["Cover Letter"]
+        #             cv_locator = self.browser.find_element(By.XPATH, "//*[contains(@id, 'jobs-document-upload-file-input-upload-cover-letter')]")
+        #             cv_locator.send_keys(cv)
+
+        #             #time.sleep(random.uniform(4.5, 6.5))
+        #         elif len(self.get_elements("follow")) > 0:
+        #             elements = self.get_elements("follow")
+        #             for element in elements:
+        #                 button = self.wait.until(EC.element_to_be_clickable(element))
+        #                 button.click()
+
+        #         if len(self.get_elements("submit")) > 0:
+        #             elements = self.get_elements("submit")
+        #             for element in elements:
+        #                 button = self.wait.until(EC.element_to_be_clickable(element))
+        #                 button.click()
+        #                 log.info("Application Submitted")
+        #                 submitted = True
+        #                 break
+
+        #         elif len(self.get_elements("error")) > 0:
+        #             elements = self.get_elements("error")
+        #             if "application was sent" in self.browser.page_source:
+        #                 log.info("Application Submitted")
+        #                 submitted = True
+        #                 break
+        #             elif len(elements) > 0:
+        #                 max_retries = 3
+        #                 retry_count = 0
+
+        #                 while len(elements) > 0 and retry_count < max_retries:
+        #                     log.info(f"Please answer the questions, attempt {retry_count + 1}/{max_retries}, waiting 1 second...")
+        #                     time.sleep(1)
+        #                     elements = self.get_elements("error")
+
+        #                     for element in elements:
+        #                         self.process_questions()
+
+        #                     if "application was sent" in self.browser.page_source:
+        #                         log.info("Application Submitted")
+        #                         submitted = True
+        #                         break
+        #                     elif is_present(self.locator["easy_apply_button"]):
+        #                         log.info("Skipping application")
+        #                         submitted = False
+        #                         break
+
+        #                     retry_count += 1
+
+        #                 if retry_count >= max_retries:
+        #                     log.info("Max retries reached. Skipping application.")
+
+        #                 continue
+        #             else:
+        #                 log.info("Application not submitted")
+        #                 time.sleep(2)
+        #                 break
+                
+        #         # elif len(self.get_elements("error")) > 0:
+        #         #     elements = self.get_elements("error")
+        #         #     if "application was sent" in self.browser.page_source:
+        #         #         log.info("Application Submitted")
+        #         #         submitted = True
+        #         #         break
+        #         #     elif len(elements) > 0:
+        #         #         while len(elements) > 0:
+        #         #             log.info("Please answer the questions, waiting 5 seconds...")
+        #         #             time.sleep(5)
+        #         #             elements = self.get_elements("error")
+
+        #         #             for element in elements:
+        #         #                 self.process_questions()
+
+        #         #             if "application was sent" in self.browser.page_source:
+        #         #                 log.info("Application Submitted")
+        #         #                 submitted = True
+        #         #                 break
+        #         #             elif is_present(self.locator["easy_apply_button"]):
+        #         #                 log.info("Skipping application")
+        #         #                 submitted = False
+        #         #                 break
+        #         #         continue
+        #         #         #add explicit wait
+
+        #         #     else:
+        #         #         log.info("Application not submitted")
+        #         #         time.sleep(2)
+        #         #         break
+        #         #     # self.process_questions()
+
+        #         elif len(self.get_elements("next")) > 0:
+        #             elements = self.get_elements("next")
+        #             for element in elements:
+        #                 button = self.wait.until(EC.element_to_be_clickable(element))
+        #                 button.click()
+
+        #         elif len(self.get_elements("review")) > 0:
+        #             elements = self.get_elements("review")
+        #             for element in elements:
+        #                 button = self.wait.until(EC.element_to_be_clickable(element))
+        #                 button.click()
+
+        #         elif len(self.get_elements("follow")) > 0:
+        #             elements = self.get_elements("follow")
+        #             for element in elements:
+        #                 button = self.wait.until(EC.element_to_be_clickable(element))
+        #                 button.click()
 
         except Exception as e:
             log.error(e)
@@ -535,51 +800,521 @@ class EasyApplyBot:
             #raise (e)
 
         return submitted
+
+# def process_questions(self):
+#     time.sleep(1)
+#     form = self.get_elements("fields")
+#     for field in form:
+#         question = field.text.lower()
+#         answer = self.get_auto_answer(question)
+
+#         log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+#         if answer is None:
+#             log.info(f"Skipping question (no default answer found): '{question}'")
+#             continue
+
+#         try:
+#             # --- Handle direct input fields (text/numbers) ---
+#             inputs = field.find_elements(By.TAG_NAME, "input")
+#             for input_field in inputs:
+#                 input_type = input_field.get_attribute("type")
+#                 if input_type in ["text", "number"]:
+#                     input_field.clear()
+#                     input_field.send_keys(str(answer))
+#                     input_field.send_keys(Keys.TAB)
+#                     log.info(f"Entered '{answer}' into text/number field for '{question}'.")
+#                     break
+
+#             # --- Handle radio buttons ---
+#             radios = field.find_elements(By.CSS_SELECTOR, "input[type='radio']")
+#             for radio in radios:
+#                 if radio.get_attribute("value").lower() == str(answer).lower():
+#                     self.browser.execute_script("arguments[0].click();", radio)
+#                     log.info(f"Selected radio option '{answer}' for '{question}'.")
+#                     break
+
+#             # --- Handle dropdowns ---
+#             selects = field.find_elements(By.TAG_NAME, "select")
+#             for select in selects:
+#                 options = select.find_elements(By.TAG_NAME, "option")
+#                 for option in options:
+#                     if option.text.strip().lower() == str(answer).lower():
+#                         option.click()
+#                         log.info(f"Selected dropdown option '{answer}' for '{question}'.")
+#                         break
+
+#         except Exception as e:
+#             log.error(f"Error filling field for question '{question}': {e}")
+
     def process_questions(self):
         time.sleep(1)
-        form = self.get_elements("fields") #self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
+        form = self.get_elements("fields")
         for field in form:
-            question = field.text
-            answer = self.ans_question(question.lower())
-            #radio button
-            if self.is_present(self.locator["radio_select"]):
-                try:
-                    input = field.find_element(By.CSS_SELECTOR, "input[type='radio'][value={}]".format(answer))
-                    input.execute_script("arguments[0].click();", input)
-                except Exception as e:
-                    log.error(e)
-                    continue
-            #multi select
-            elif self.is_present(self.locator["multi_select"]):
-                try:
-                    input = field.find_element(self.locator["multi_select"])
-                    input.send_keys(answer)
-                except Exception as e:
-                    log.error(e)
-                    continue
+            question = field.text.lower()
+            answer = self.get_auto_answer(question)
+
+            log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+            if answer is None:
+                log.info(f"Skipping question (no default answer found): '{question}'")
+                continue
+
+            try:
+                # --- Handle Text and Number Inputs ---
+                input_fields = field.find_elements(By.TAG_NAME, "input")
+                for input_field in input_fields:
+                    input_type = input_field.get_attribute("type")
+                    if input_type in ["text", "number"]:
+                        input_field.clear()
+                        input_field.send_keys(str(answer))
+                        input_field.send_keys(Keys.RETURN)
+                        log.info(f"Filled {input_type} field with '{answer}'.")
+                        break  # Move to the next question
+
+                # --- Handle Radio Buttons ---
+                radio_buttons = field.find_elements(By.CSS_SELECTOR, "input[type='radio']")
+                for radio in radio_buttons:
+                    if radio.get_attribute("value").lower() == str(answer).lower():
+                        self.browser.execute_script("arguments[0].click();", radio)
+                        log.info(f"Selected radio option '{answer}'.")
+                        break
+
+                # --- Handle Standard Dropdowns ---
+                selects = field.find_elements(By.TAG_NAME, "select")
+                for select in selects:
+                    options = select.find_elements(By.TAG_NAME, "option")
+                    for option in options:
+                        if option.text.strip().lower() == str(answer).lower():
+                            option.click()
+                            log.info(f"Selected standard dropdown option '{answer}'.")
+                            break
+
+                # --- Dynamic Language Dropdown Handling ---
+                for language in self.answers.get("languages", {}).keys():
+                    if language.lower() in question:
+                        lang_answer = self.answers["languages"].get(language, "None")
+                        log.info(f"Handling language proficiency for '{language}' with answer '{lang_answer}'.")
+
+                        try:
+                            # Try standard <select> first
+                            lang_select = self.browser.find_element(By.XPATH, f"//label[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{language.lower()}')]/following-sibling::select")
+                            Select(lang_select).select_by_visible_text(lang_answer)
+                            log.info(f"Selected '{language}' proficiency using standard <select>.")
+                        except:
+                            try:
+                                # Handle LinkedIn-style custom dropdown
+                                lang_label = self.browser.find_element(By.XPATH, f"//label[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{language.lower()}')]")
+                                dropdown_trigger = lang_label.find_element(By.XPATH, "../following-sibling::*//button | ../following-sibling::*//div[contains(@class, 'dropdown')]")
+                                dropdown_trigger.click()
+                                time.sleep(0.5)  # Wait for options to appear
+
+                                options = self.browser.find_elements(By.XPATH, f"//li[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{lang_answer.lower()}')]")
+                                if options:
+                                    options[0].click()
+                                    log.info(f"Selected '{language}' proficiency '{lang_answer}' using custom dropdown.")
+                                else:
+                                    log.warning(f"No matching '{language}' proficiency option found in custom dropdown.")
+                            except Exception as e:
+                                log.warning(f"Could not handle '{language}' proficiency dropdown: {e}")
+
+            except Exception as e:
+                log.error(f"Error during question processing: {e}")
+
+
+    # def process_questions(self):
+    #     time.sleep(1)
+
+    #     try:
+    #         # 1. Handle "How many years of work experience do you have with Sales?"
+    #         sales_input = self.browser.find_element(By.XPATH, "//label[contains(text(), 'Sales')]/following-sibling::input")
+    #         sales_input.clear()
+    #         sales_input.send_keys(str(self.get_auto_answer("sales")))
+    #         sales_input.send_keys(Keys.RETURN)
+    #         log.info("Filled Sales experience field.")
+
+    #         # 2. Handle "How many years of work experience do you have with Business Travel?"
+    #         travel_input = self.browser.find_element(By.XPATH, "//label[contains(text(), 'Business Travel')]/following-sibling::input")
+    #         travel_input.clear()
+    #         travel_input.send_keys(str(self.get_auto_answer("business travel")))
+    #         travel_input.send_keys(Keys.RETURN)
+    #         log.info("Filled Business Travel experience field.")
+
+    #         # 3. Handle Chinese language proficiency dropdown
+    #         chinese_dropdown = self.browser.find_element(By.XPATH, "//label[contains(text(), 'Chinese')]/following-sibling::select")
+    #         Select(chinese_dropdown).select_by_visible_text(self.get_auto_answer("chinese"))
+    #         log.info("Selected Chinese proficiency.")
+
+    #         # 4. Handle English language proficiency dropdown
+    #         english_dropdown = self.browser.find_element(By.XPATH, "//label[contains(text(), 'English')]/following-sibling::select")
+    #         Select(english_dropdown).select_by_visible_text(self.get_auto_answer("english"))
+    #         log.info("Selected English proficiency.")
+
+    #         # 5. Handle Bachelor’s Degree Yes/No
+    #         bachelor_yes = self.browser.find_element(By.XPATH, "//label[contains(text(), \"Bachelor's Degree\")]/following-sibling::*//label[contains(., 'Yes')]")
+    #         bachelor_yes.click()
+    #         log.info("Selected Bachelor's Degree: Yes.")
+
+    #     except Exception as e:
+    #         log.error(f"Error during question processing: {e}")
+
+    # def process_questions(self):
+    #     time.sleep(1)
+    #     form = self.get_elements("fields")
+    #     for field in form:
+    #         question = field.text.lower()
+    #         answer = self.get_auto_answer(question)
+
+    #         log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+    #         if answer is None:
+    #             log.info(f"Skipping question (no default answer found): '{question}'")
+    #             continue
+
+    #         try:
+    #             # Handle text/numeric fields (e.g., experience years)
+    #             input_fields = field.find_elements(By.TAG_NAME, "input")
+    #             for input_field in input_fields:
+    #                 input_type = input_field.get_attribute("type")
+    #                 if input_type in ["text", "number"]:
+    #                     input_field.clear()
+    #                     input_field.send_keys(str(answer))
+    #                     input_field.send_keys(Keys.RETURN)
+    #                     log.info(f"Entered '{answer}' into text/number field.")
+    #                     break
+
+    #             # Handle radio buttons
+    #             radio_buttons = field.find_elements(By.CSS_SELECTOR, "input[type='radio']")
+    #             for radio in radio_buttons:
+    #                 if radio.get_attribute("value").lower() == answer.lower():
+    #                     self.browser.execute_script("arguments[0].click();", radio)
+    #                     log.info(f"Selected radio option: '{answer}'")
+    #                     break
+
+    #             # Handle dropdowns (select elements)
+    #             selects = field.find_elements(By.TAG_NAME, "select")
+    #             for select in selects:
+    #                 options = select.find_elements(By.TAG_NAME, "option")
+    #                 for option in options:
+    #                     if option.text.strip().lower() == answer.lower():
+    #                         option.click()
+    #                         log.info(f"Selected dropdown option: '{answer}'")
+    #                         break
+
+    #         except Exception as e:
+    #             log.error(f"Error filling field for question '{question}': {e}")
+
+    # def process_questions(self):
+    #     time.sleep(1)
+    #     form = self.get_elements("fields")
+    #     for field in form:
+    #         question = field.text.lower()
+    #         answer = self.get_auto_answer(question)
+
+    #         log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+    #         if answer is None:
+    #             log.info(f"Skipping question (no default answer found): '{question}'")
+    #             continue
+
+    #         try:
+    #             # Numeric & text fields
+    #             if self.is_present(self.locator["text_select"]):
+    #                 input_field = field.find_element(self.locator["text_select"])
+    #                 input_field.clear()
+    #                 input_field.send_keys(str(answer))
+    #                 input_field.send_keys(Keys.RETURN)
+
+    #             # Radio buttons
+    #             elif self.is_present(self.locator["radio_select"]):
+    #                 input_field = field.find_element(By.CSS_SELECTOR, f"input[type='radio'][value='{answer}']")
+    #                 self.browser.execute_script("arguments[0].click();", input_field)
+
+    #             # Dropdowns using <select> element
+    #             elif field.find_elements(By.TAG_NAME, "select"):
+    #                 select_element = field.find_element(By.TAG_NAME, "select")
+    #                 select = Select(select_element)
+    #                 try:
+    #                     select.select_by_visible_text(answer)
+    #                 except:
+    #                     log.warning(f"Option '{answer}' not found for question '{question}'")
+
+    #         except Exception as e:
+    #             log.error(f"Error filling field for question '{question}': {e}")
+
+            # try:
+            #     # --- Special Handling for Numeric Fields ---
+            #     if "how many years" in question:
+            #         input_field = field.find_element(self.locator["text_select"])
+            #         input_field.clear()
+            #         input_field.send_keys(str(answer))
+            #         input_field.send_keys(Keys.RETURN)
+            #         continue  # Skip remaining checks for this field
+
+            #     # --- Special Handling for Chinese Proficiency Dropdown ---
+            #     if "proficiency in chinese" in question:
+            #         dropdown = field.find_element(By.TAG_NAME, "select")
+            #         for option in dropdown.find_elements(By.TAG_NAME, "option"):
+            #             if option.text.strip().lower() == answer.lower():
+            #                 option.click()
+            #                 break
+            #         continue  # Skip remaining checks for this field
+
+            #     # --- Generic Handling for Text Inputs ---
+            #     if self.is_present(self.locator["text_select"]):
+            #         input_field = field.find_element(self.locator["text_select"])
+            #         input_field.clear()
+            #         input_field.send_keys(str(answer))
+            #         input_field.send_keys(Keys.RETURN)
+
+            #     # --- Generic Handling for Radio Buttons ---
+            #     elif self.is_present(self.locator["radio_select"]):
+            #         input_field = field.find_element(By.CSS_SELECTOR, f"input[type='radio'][value='{answer}']")
+            #         self.browser.execute_script("arguments[0].click();", input_field)
+
+            #     # --- Generic Handling for Other Dropdowns ---
+            #     elif "select an option" in field.text.lower():
+            #         try:
+            #             select_element = field.find_element(By.TAG_NAME, "select")
+            #             for option in select_element.find_elements(By.TAG_NAME, "option"):
+            #                 if option.text.strip().lower() == answer.lower():
+            #                     option.click()
+            #                     break
+            #         except Exception as e:
+            #             log.warning(f"Could not select dropdown option for '{question}': {e}")
+
+            # except Exception as e:
+            #     log.error(f"Error filling field: {e}")
+
+    # def process_questions(self):
+    #     time.sleep(1)
+    #     form = self.get_elements("fields")
+    #     for field in form:
+    #         question = field.text.lower()
+    #         answer = self.get_auto_answer(question)
+
+    #         log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+    #         if answer is None:
+    #             log.info(f"Skipping question (no default answer found): '{question}'")
+    #             continue
+
+    #         try:
+    #             # Handle numeric and text inputs
+    #             if self.is_present(self.locator["text_select"]):
+    #                 input_field = field.find_element(self.locator["text_select"])
+    #                 input_field.clear()
+    #                 input_field.send_keys(str(answer))
+    #                 input_field.send_keys(Keys.RETURN)
+
+    #             # Handle radio buttons
+    #             elif self.is_present(self.locator["radio_select"]):
+    #                 input_field = field.find_element(By.CSS_SELECTOR, f"input[type='radio'][value='{answer}']")
+    #                 self.browser.execute_script("arguments[0].click();", input_field)
+
+    #             # Handle dropdowns explicitly
+    #             elif "select an option" in field.text.lower():
+    #                 try:
+    #                     select_element = field.find_element(By.TAG_NAME, "select")
+    #                     for option in select_element.find_elements(By.TAG_NAME, "option"):
+    #                         if option.text.strip().lower() == answer.lower():
+    #                             option.click()
+    #                             break
+    #                 except Exception as e:
+    #                     log.warning(f"Could not select dropdown option for '{question}': {e}")
+
+    #         except Exception as e:
+    #             log.error(f"Error filling field: {e}")
+
+    # def process_questions(self):
+    #     time.sleep(1)
+    #     form = self.get_elements("fields")
+    #     for field in form:
+    #         question = field.text.lower()
+    #         answer = self.get_auto_answer(question)
+
+    #         log.info(f"Auto-answering question: '{question}' with answer: '{answer}'")
+
+    #         if answer is None:
+    #             log.info(f"Skipping question (no default answer found): '{question}'")
+    #             continue  # Skip if no default answer is found
+
+    #         try:
+    #             if self.is_present(self.locator["radio_select"]):
+    #                 input = field.find_element(By.CSS_SELECTOR, f"input[type='radio'][value='{answer}']")
+    #                 self.browser.execute_script("arguments[0].click();", input)
+    #             elif self.is_present(self.locator["multi_select"]):
+    #                 input = field.find_element(self.locator["multi_select"])
+    #                 input.send_keys(answer)
+    #             elif self.is_present(self.locator["text_select"]):
+    #                 input = field.find_element(self.locator["text_select"])
+    #                 input.send_keys(str(answer))
+    #                 input.send_keys(Keys.RETURN)
+    #         except Exception as e:
+    #             log.error(f"Error filling field: {e}")
+
+    def get_auto_answer(self, question):
+        params = self.answers if hasattr(self, 'answers') else {}
+
+        question = question.lower()  # Normalize question text for easier matching
+
+        # Handle visa and authorization questions
+        if "visa" in question:
+            return str(params.get("auto_answer_questions", {}).get("requireVisa", "No"))
+        if "authorized to work" in question:
+            return str(params.get("auto_answer_questions", {}).get("legallyAuthorized", "Yes"))
+        if "background check" in question:
+            return str(params.get("auto_answer_questions", {}).get("backgroundCheck", "Yes"))
+        if "start immediately" in question:
+            return str(params.get("auto_answer_questions", {}).get("urgentFill", "Yes"))
+
+        # Handle degree-related questions
+        if "degree" in question or "education" in question:
+            degrees = params.get("auto_answer_questions", {}).get("degreeCompleted", [])
+            return degrees[0] if degrees else "Bachelor's Degree"
+
+        # Handle language proficiency questions
+        if "proficiency in chinese" in question:
+            return params.get("languages", {}).get("chinese", "None")
+        if "proficiency in english" in question:
+            return params.get("languages", {}).get("english", "Native or bilingual")
+
+        # Handle experience-related questions
+        industry_exp = params.get("industry_experience", {})
+        for industry in industry_exp:
+            if industry.lower() in question:
+                return str(industry_exp[industry])  # Ensure it's a string for input fields
+
+        # Default fallback
+        return "0"  # Safe default for numeric fields like years of experience
+
+    # def get_auto_answer(self, question):
+    #     params = self.answers if hasattr(self, 'answers') else {}
+    #     log.debug(f"Processing question: {question}")
+
+    #     if "visa" in question:
+    #         return "No" if not params.get("auto_answer_questions", {}).get("requireVisa", False) else "Yes"
+    #     elif "authorized to work" in question:
+    #         return "Yes" if params.get("auto_answer_questions", {}).get("legallyAuthorized", True) else "No"
+    #     elif "background check" in question:
+    #         return "Yes" if params.get("auto_answer_questions", {}).get("backgroundCheck", True) else "No"
+    #     elif "start immediately" in question:
+    #         return "Yes" if params.get("auto_answer_questions", {}).get("urgentFill", True) else "No"
+    #     elif "degree" in question:
+    #         degrees = params.get("auto_answer_questions", {}).get("degreeCompleted", [])
+    #         return degrees[0] if degrees else "Bachelor's Degree"
+    #     elif "language" in question:
+    #         if "chinese" in question:
+    #             return params.get("languages", {}).get("chinese", "None")
+    #         if "english" in question:
+    #             return params.get("languages", {}).get("english", "Native or bilingual")
+    #     elif "experience" in question:
+    #         industry_exp = params.get("industry_experience", {})
+    #         for industry in industry_exp:
+    #             if industry.lower() in question:
+    #                 return str(industry_exp[industry])  # Ensure number is returned as string
+    #         return str(industry_exp.get("default", 0))
+        
+    #     return "Yes"  # Default fallback
+    
+    # def get_auto_answer(self, question):
+    #     params = self.answers if hasattr(self, 'answers') else {}
+    #     log.debug(f"Processing question: {question}")
+
+    #     # Experience-related questions
+    #     if "how many years" in question or "years of work experience" in question:
+    #         industry_exp = params.get("industry_experience", {})
+    #         for industry in industry_exp:
+    #             if industry.lower() in question:
+    #                 return str(industry_exp[industry])  # Ensure it's a string for input fields
+    #         return str(industry_exp.get("default", 0))  # Fallback to default if no match
+
+
+
+        # if "experience" in question or "years of work" in question:
+        #     industry_exp = params.get("industry_experience", {})
+        #     for industry in industry_exp:
+        #         if industry.lower() in question:
+        #             return industry_exp[industry]
+        #     return industry_exp.get("default", 0)  # Fallback to default if no match
+
+        # Visa & Work Authorization
+        # if "visa" in question:
+        #     return "Yes" if params.get("auto_answer_questions", {}).get("requireVisa", False) else "No"
+        # if "authorized to work" in question:
+        #     return "Yes" if params.get("auto_answer_questions", {}).get("legallyAuthorized", True) else "No"
+        # if "background check" in question:
+        #     return "Yes" if params.get("auto_answer_questions", {}).get("backgroundCheck", True) else "No"
+        # if "start immediately" in question:
+        #     return "Yes" if params.get("auto_answer_questions", {}).get("urgentFill", True) else "No"
+
+        # # Degree/Education Level
+        # if "degree" in question or "education" in question:
+        #     degrees = params.get("auto_answer_questions", {}).get("degreeCompleted", [])
+        #     return degrees[0] if degrees else "Bachelor's Degree"
+
+        # # Language Proficiency
+        # if "language" in question or "proficiency" in question:
+        #     if "chinese" in question:
+        #         return params.get("languages", {}).get("chinese", "None")
+        #     if "english" in question:
+        #         return params.get("languages", {}).get("english", "Native or bilingual")
+        #     # Default language response
+        #     return "None"
+
+        # # Default Fallback for Unhandled Cases
+        # log.warning(f"No matching answer found for question: '{question}'. Using fallback.")
+        # if "years of" in question or "experience" in question:
+        #     return "0"  # Default for numerical experience questions
+        # return "Yes"  # Default for Yes/No questions
+
+
+
+#    def process_questions(self):
+#        time.sleep(1)
+#        form = self.get_elements("fields") #self.browser.find_elements(By.CLASS_NAME, "jobs-easy-apply-form-section__grouping")
+#        for field in form:
+#            question = field.text
+#            answer = self.ans_question(question.lower())
+#            #radio button
+            # if self.is_present(self.locator["radio_select"]):
+                # try:
+                    # input = field.find_element(By.CSS_SELECTOR, "input[type='radio'][value={}]".format(answer))
+                    # input.execute_script("arguments[0].click();", input)
+                # except Exception as e:
+                    # log.error(e)
+                    # continue
+            # multi select
+            # elif self.is_present(self.locator["multi_select"]):
+                # try:
+                    # input = field.find_element(self.locator["multi_select"])
+                    # input.send_keys(answer)
+                # except Exception as e:
+                    # log.error(e)
+                    # continue
             # text box
-            elif self.is_present(self.locator["text_select"]):
-                try:
-                    input = field.find_element(self.locator["text_select"])
-                    input.send_keys(answer)
-                except Exception as e:
-                    log.error(e)
-                    continue
+            # elif self.is_present(self.locator["text_select"]):
+                # try:
+                    # input = field.find_element(self.locator["text_select"])
+                    # input.send_keys(answer)
+                # except Exception as e:
+                    # log.error(e)
+                    # continue
 
-            elif self.is_present(self.locator["text_select"]):
-               pass
+            # elif self.is_present(self.locator["text_select"]):
+            #    pass
 
-            if "Yes" or "No" in answer: #radio button
-                try: #debug this
-                    input = form.find_element(By.CSS_SELECTOR, "input[type='radio'][value={}]".format(answer))
-                    form.execute_script("arguments[0].click();", input)
-                except:
-                    pass
+            # if "Yes" or "No" in answer: #radio button
+                # try: #debug this
+                    # input = form.find_element(By.CSS_SELECTOR, "input[type='radio'][value={}]".format(answer))
+                    # form.execute_script("arguments[0].click();", input)
+                # except:
+                    # pass
 
 
-            else:
-                input = form.find_element(By.CLASS_NAME, "artdeco-text-input--input")
-                input.send_keys(answer)
+            # else:
+                # input = form.find_element(By.CLASS_NAME, "artdeco-text-input--input")
+                # input.send_keys(answer)
 
     def ans_question(self, question): #refactor this to an ans.yaml file
         answer = None
@@ -649,32 +1384,54 @@ class EasyApplyBot:
         page = BeautifulSoup(self.browser.page_source, "lxml")
         return page
 
-    def avoid_lock(self) -> None:
-        x, _ = pyautogui.position()
-        pyautogui.moveTo(x + 200, pyautogui.position().y, duration=1.0)
-        pyautogui.moveTo(x, pyautogui.position().y, duration=0.5)
-        pyautogui.keyDown('ctrl')
-        pyautogui.press('esc')
-        pyautogui.keyUp('ctrl')
-        time.sleep(0.5)
-        pyautogui.press('esc')
+# def avoid_lock(self) -> None:
+
+# x, \_ = pyautogui.position()
+
+# pyautogui.moveTo(x + 200, pyautogui.position().y, duration=1.0)
+
+# pyautogui.moveTo(x, pyautogui.position().y, duration=0.5)
+
+# pyautogui.keyDown('ctrl')
+
+# pyautogui.press('esc')
+
+# pyautogui.keyUp('ctrl')
+
+# time.sleep(0.5)
+
+# pyautogui.press('esc')
 
     def next_jobs_page(self, position, location, jobs_per_page, experience_level=[]):
-        # Construct the experience level part of the URL
         experience_level_str = ",".join(map(str, experience_level)) if experience_level else ""
         experience_level_param = f"&f_E={experience_level_str}" if experience_level_str else ""
-        self.browser.get(
-            # URL for jobs page
-            "https://www.linkedin.com/jobs/search/?f_LF=f_AL&keywords=" +
-            position + location + "&start=" + str(jobs_per_page) + experience_level_param)
-        #self.avoid_lock()
+        location_param = f"&location={urllib.parse.quote(location)}" if location else ""
+        search_url = (
+            f"https://www.linkedin.com/jobs/search/?f_LF=f_AL&keywords={urllib.parse.quote(position)}"
+            f"{location_param}&start={jobs_per_page}{experience_level_param}"
+        )
+        self.browser.get(search_url)
+
+        log.info("Loading next job page?")
+        self.load_page()
+        return (self.browser, jobs_per_page)
+    # def next_jobs_page(self, position, location, jobs_per_page, experience_level=[]):
+    #     # Construct the experience level part of the URL
+    #     experience_level_str = ",".join(map(str, experience_level)) if experience_level else ""
+    #     experience_level_param = f"&f_E={experience_level_str}" if experience_level_str else ""
+    #     self.browser.get(
+    #         # URL for jobs page
+    #         "https://www.linkedin.com/jobs/search/?f_LF=f_AL&keywords=" +
+    #         position + location + "&start=" + str(jobs_per_page) + experience_level_param)
+
+# #self.avoid_lock()
+
         log.info("Loading next job page?")
         self.load_page()
         return (self.browser, jobs_per_page)
 
     # def finish_apply(self) -> None:
     #     self.browser.close()
-
 
 if __name__ == '__main__':
 
@@ -683,6 +1440,8 @@ if __name__ == '__main__':
             parameters = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             raise exc
+    log.info(f"Positions from YAML: {parameters.get('positions')}")
+    log.info(f"Locations from YAML: {parameters.get('locations')}")
 
     assert len(parameters['positions']) > 0
     assert len(parameters['locations']) > 0
@@ -711,16 +1470,31 @@ if __name__ == '__main__':
     positions: list = [p for p in parameters['positions'] if p is not None]
 
     bot = EasyApplyBot(parameters['username'],
-                       parameters['password'],
-                       parameters['phone_number'],
-                       parameters['salary'],
-                       parameters['rate'], 
-                       uploads=uploads,
-                       filename=output_filename,
-                       blacklist=blacklist,
-                       blackListTitles=blackListTitles,
-                       experience_level=parameters.get('experience_level', [])
-                       )
-    bot.start_apply(positions, locations)
+                   parameters['password'],
+                   parameters['phone_number'],
+                   parameters['salary'],
+                   parameters['rate'],
+                   uploads=uploads,
+                   filename=output_filename,
+                   blacklist=blacklist,
+                   blackListTitles=blackListTitles,
+                   experience_level=parameters.get('experience_level', [])
+                   )
 
+# Attach config data to bot for auto-answering
+bot.answers = parameters  
 
+bot.start_apply(positions, locations)
+
+#     bot = EasyApplyBot(parameters['username'],
+#                        parameters['password'],
+#                        parameters['phone_number'],
+#                        parameters['salary'],
+#                        parameters['rate'],
+#                        uploads=uploads,
+#                        filename=output_filename,
+#                        blacklist=blacklist,
+#                        blackListTitles=blackListTitles,
+#                        experience_level=parameters.get('experience_level', [])
+#                        )
+#     bot.start_apply(positions, locations)

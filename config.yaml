@@ -1,32 +1,30 @@
-username: <username>
-password: <password>
-phone_number: <phone_number>
+username:
+password:
+phone_number:
 
-profile_path: '' #can be empty, will default to 'C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default'
-
+profile_path: "" #can be empty, will default to 'C:\Users\<user>\AppData\Local\Google\Chrome\User Data\Default'
 
 positions:
-- Software Engineer
-
+  -
 
 locations:
-- Michigan
-- Remote
+  -
+  # - Remote
 
-salary: 60,000
-rate: 25
+salary:
+rate:
 # --------- Optional Parameters -------
 uploads:
-  Resume: /Users/steven/Desktop/LinkedIn-Easy-Apply-Bot/cv.pdf
-  Cover Letter: /Users/steven/Desktop/LinkedIn-Easy-Apply-Bot/cl.pdf
+  Resume: # PATH TO resume
+
+  #Cover Letter: \ PATH TO cover letter
   #Photo: # PATH TO photo
 
-
 output_filename:
-- /Users/steven/Desktop/LinkedIn-Easy-Apply-Bot/out.csv
+  -  # Default is 'output.txt'
 
-# blacklist:
-# - # Company names you want to ignore
+blacklist:
+  -
 
 experience_level:
   # - 1 # Entry level
@@ -35,3 +33,23 @@ experience_level:
   # - 4 # Director
   # - 5 # Executive
   # - 6 # Internship
+
+# Auto-answer for common yes/no questions (use True/False)
+auto_answer_questions:
+  requireVisa: False
+  legallyAuthorized: True
+  urgentFill: True
+  commute: True
+  backgroundCheck: True
+  degreeCompleted:
+    -
+
+languages:
+  english: Native or bilingual
+  chinese: None # Add other languages as needed
+
+industry_experience:
+  Sales: 0
+  Business Development: 0
+  Business Travel: 0
+  default: 0 # For unspecified industries
