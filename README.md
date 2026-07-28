@@ -7,25 +7,25 @@ Automate the application process on LinkedIn while you focus on more important t
 
 ---
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
-### ✅ **1. Install Python**
+### **1. Install Python**
 
 - Download and install Python from [https://www.python.org/downloads/](https://www.python.org/downloads/).
 - Ensure you check **“Add Python to PATH”** during installation.
 
-### ✅ **2. Install Google Chrome**
+### **2. Install Google Chrome**
 
 - Download from [https://www.google.com/chrome/](https://www.google.com/chrome/).
 
 ---
 
-### 💻 **For Windows Users**
+### **For Windows Users**
 
 1. Open **Command Prompt** (Press `Win + R`, type `cmd`, and press Enter).
 2. Navigate to the bot’s folder. Example:
 
-   cd C:\Users\YourName\Documents\LinkedIn-Easy-Apply-Bot
+   cd C:\Users\YourName\Code\LinkedIn-Easy-Apply-Bot
 
 3. Install the required packages:
 
